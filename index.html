@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>玩法激励金计算与结算系统</title>
+<style>
+:root{--primary:#4f46e5;--primary-hover:#4338ca;--success:#059669;--success-bg:#ecfdf5;--warning:#d97706;--warning-bg:#fffbeb;--bg:#f8fafc;--card-bg:#fff;--border:#e2e8f0;--text:#1e293b;--text-secondary:#64748b;--text-muted:#94a3b8;--radius:12px;--shadow:0 1px 3px rgba(0,0,0,.1);--shadow-md:0 4px 6px rgba(0,0,0,.07);--shadow-lg:0 10px 15px rgba(0,0,0,.1)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:#f1f5f9;color:var(--text);line-height:1.6;min-height:100vh}
+
+.header{background:linear-gradient(135deg,#4f46e5 0%,#3730a3 100%);color:#fff;padding:18px 32px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(79,70,229,.3)}
+.header h1{font-size:22px;font-weight:700;display:flex;align-items:center;gap:10px}
+.header .subtitle{font-size:13px;opacity:.85;margin-top:2px}
+.header-links{display:flex;gap:8px}
+.header-link{color:#e0e7ff;text-decoration:none;padding:6px 16px;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);white-space:nowrap}
+.header-link:hover{color:#fff;background:rgba(255,255,255,.18)}
+
+.tab-nav{background:#fff;border-bottom:1px solid var(--border);box-shadow:0 1px 4px rgba(0,0,0,.04);position:sticky;top:0;z-index:90}
+.tab-nav-inner{max-width:1280px;margin:0 auto;display:flex;padding:0 32px}
+.tab-item{padding:14px 28px;cursor:pointer;font-size:14px;font-weight:500;color:var(--text-secondary);border:none;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .2s;background:none;white-space:nowrap;font-family:inherit}
+.tab-item:hover{color:var(--primary)}
+.tab-item.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:600}
+
+.tab-content{display:none}
+.tab-content.active{display:block}
+.container{max-width:1280px;margin:0 auto;padding:24px 32px}
+
+.card{background:var(--card-bg);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);margin-bottom:20px;overflow:hidden}
+.card-header{padding:16px 24px;border-bottom:1px solid var(--border);background:#fafbfc;display:flex;align-items:center;justify-content:space-between}
+.card-header h3{font-size:15px;font-weight:600;color:#334155;display:flex;align-items:center;gap:8px}
+.card-header h3 .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.card-body{padding:20px 24px}
+
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group label{font-size:13px;font-weight:600;color:#475569}
+.form-group label .unit{font-weight:400;color:var(--text-muted);margin-left:4px}
+.form-group input,.form-group select{height:40px;padding:0 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);outline:none;font-family:inherit;transition:all .2s}
+.form-group input:focus,.form-group select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.1)}
+.budget-input-wrapper{position:relative}
+.budget-input-wrapper .prefix{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:14px;font-weight:500}
+.budget-input-wrapper input{padding-left:28px!important;width:100%}
+
+.tracks-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.track-card{background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:20px;transition:all .2s}
+.track-card:hover{border-color:#c7d2fe;box-shadow:0 0 0 1px rgba(79,70,229,.08)}
+.track-header{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px dashed var(--border)}
+.track-badge{font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px}
+.badge-new{background:#dbeafe;color:#1d4ed8}
+.badge-classic{background:#fef3c7;color:#b45309}
+.track-name{font-size:14px;font-weight:600;color:#334155}
+.track-params{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.deduction-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.track-params .param-group label,.deduction-grid .param-group label{font-size:12px;font-weight:500;color:#64748b;display:block;margin-bottom:4px}
+.track-params .param-group input,.deduction-grid .param-group input{width:100%;height:36px;padding:0 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;color:var(--text);outline:none;transition:all .2s}
+.track-params .param-group input:focus,.deduction-grid .param-group input:focus{border-color:var(--primary);box-shadow:0 0 0 2px rgba(79,70,229,.08)}
+.param-input-wrapper{position:relative}
+.param-input-wrapper .unit-label{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--text-muted)}
+.param-input-wrapper input{padding-right:30px!important}
+.inline-two{display:flex;gap:6px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:40px;padding:0 20px;border-radius:8px;font-size:14px;font-weight:600;border:none;cursor:pointer;transition:all .2s;font-family:inherit;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:0 1px 2px rgba(79,70,229,.3)}
+.btn-primary:hover{background:var(--primary-hover);box-shadow:0 4px 8px rgba(79,70,229,.35)}
+.btn-secondary{background:#fff;color:#475569;border:1px solid var(--border)}
+.btn-secondary:hover{background:#f8fafc;border-color:#cbd5e1}
+.btn-success{background:var(--success);color:#fff}
+.btn-success:hover{background:#047857}
+.btn-outline{background:#fff;color:var(--primary);border:1px solid var(--primary)}
+.btn-outline:hover{background:#eef2ff}
+.btn-sm{height:32px;padding:0 14px;font-size:13px;border-radius:6px}
+.btn-disabled{background:#f1f5f9!important;color:#94a3b8!important;border:1px solid #e2e8f0!important;cursor:not-allowed!important;pointer-events:none;box-shadow:none!important}
+.btn-row{display:flex;gap:12px;margin-top:8px;flex-wrap:wrap}
+
+.table-wrapper{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+table thead th{background:#f8fafc;padding:12px 16px;text-align:left;font-weight:600;color:#475569;border-bottom:2px solid var(--border);white-space:nowrap;font-size:12px;letter-spacing:.3px}
+table tbody td{padding:12px 16px;border-bottom:1px solid var(--border)}
+table tbody tr:hover{background:#f8fafc}
+.status-settled{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;color:var(--success);background:var(--success-bg);padding:4px 10px;border-radius:20px}
+.status-pending{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;color:var(--warning);background:var(--warning-bg);padding:4px 10px;border-radius:20px}
+.amount{font-weight:600;font-family:"SF Mono","Consolas",monospace}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:200;opacity:0;pointer-events:none;transition:opacity .25s}
+.modal-overlay.active{opacity:1;pointer-events:auto}
+.modal{background:#fff;border-radius:16px;width:90%;max-width:1000px;max-height:80vh;box-shadow:var(--shadow-lg);display:flex;flex-direction:column;transform:translateY(20px);transition:transform .25s}
+.modal-overlay.active .modal{transform:translateY(0)}
+.modal-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-header h3{font-size:17px;font-weight:600}
+.modal-close{width:32px;height:32px;border:none;background:#f1f5f9;border-radius:8px;cursor:pointer;font-size:18px;color:#64748b;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.modal-close:hover{background:#e2e8f0;color:#334155}
+.modal-body{padding:24px;overflow-y:auto;flex:1}
+.history-month{border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:12px;background:#fafbfc}
+.history-month h4{font-size:14px;font-weight:600;margin-bottom:10px;color:#334155}
+.history-params{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;font-size:12px;margin-bottom:12px}
+.history-param-item{background:#fff;padding:8px 10px;border-radius:6px;border:1px solid var(--border)}
+.history-param-item .hp-label{color:var(--text-muted);margin-bottom:2px;font-size:11px}
+.history-param-item .hp-value{font-weight:600;color:var(--text)}
+.param-group{display:flex;flex-direction:column;gap:6px}
+.param-group+.param-group{margin-top:10px;padding-top:10px;border-top:1px dashed #e2e8f0}
+.param-group-title{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#334155;white-space:nowrap}
+.mini-badge{font-size:10px;font-weight:600;color:#fff;padding:1px 7px;border-radius:8px;line-height:1.5}
+.mini-badge.new{background:#4f46e5}
+.mini-badge.classic{background:#f59e0b}
+.param-chips{display:flex;flex-wrap:wrap;gap:6px}
+.param-chip{display:inline-flex;align-items:baseline;gap:5px;background:#f8fafc;border:1px solid var(--border);border-radius:6px;padding:3px 9px;font-size:12px;line-height:1.5;white-space:nowrap}
+.param-chip .pc-label{color:var(--text-muted);font-size:11px}
+.param-chip .pc-val{font-weight:600;color:var(--text)}
+.param-chip .pc-val.money{color:var(--primary);font-family:"SF Mono","Consolas",monospace}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text-muted)}
+.empty-state .empty-icon{font-size:48px;margin-bottom:12px}
+
+.toast{position:fixed;top:20px;right:20px;background:#1e293b;color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;box-shadow:var(--shadow-lg);z-index:300;opacity:0;transform:translateX(20px);transition:all .3s;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(0)}
+.toast.success{background:#059669}
+.toast.error{background:#dc2626}
+
+@media(max-width:768px){
+.container{padding:16px}.form-row{grid-template-columns:1fr}
+.tracks-grid{grid-template-columns:1fr}.track-params{grid-template-columns:1fr 1fr}
+.history-params{grid-template-columns:repeat(2,1fr)}.deduction-grid{grid-template-columns:repeat(2,1fr)}
+table{font-size:12px}table thead th,table tbody td{padding:8px 10px}
+}
+
+@keyframes fadeInUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.card{animation:fadeInUp .4s ease both}
+.card:nth-child(2){animation-delay:.05s}
+.card:nth-child(3){animation-delay:.1s}
+.card:nth-child(4){animation-delay:.15s}
+.overview-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px}
+.overview-item{background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:18px 20px;text-align:center}
+.ov-label{font-size:13px;color:var(--text-secondary);margin-bottom:8px}
+.ov-value{font-size:24px;font-weight:700;color:var(--text)}
+.ov-value.accent{color:var(--primary)}
+.track-stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.track-stat-card{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#fff}
+.ts-header{padding:10px 14px;font-weight:600;font-size:14px;color:#fff}
+.ts-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border)}
+.ts-grid>div{background:#fff;padding:10px 12px}
+.ts-label{font-size:11px;color:var(--text-muted);margin-bottom:3px}
+.ts-val{font-size:14px;font-weight:600;color:var(--text)}
+.filter-bar{display:flex;gap:10px;flex-wrap:wrap;padding:14px 20px;border-bottom:1px solid var(--border);background:#fafbfc}
+.filter-bar input,.filter-bar select{height:34px;padding:0 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;color:var(--text);outline:none;font-family:inherit;min-width:130px}
+.filter-bar input:focus,.filter-bar select:focus{border-color:var(--primary)}
+.pagination{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 20px;border-top:1px solid var(--border);background:#fafbfc}
+.pagination .pager-info{font-size:12px;color:var(--text-muted)}
+.pagination select{height:30px;padding:0 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--text);outline:none;font-family:inherit}
+.pagination .page-btn{height:30px;padding:0 12px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text);font-size:12px;cursor:pointer}
+.pagination .page-btn:hover:not(:disabled){border-color:var(--primary);color:var(--primary)}
+.pagination .page-btn:disabled{opacity:.45;cursor:not-allowed}
+.pagination .page-num{font-size:12px;color:var(--text-muted)}
+@media(max-width:768px){.overview-grid{grid-template-columns:1fr}.track-stat-grid{grid-template-columns:1fr 1fr}.ts-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="header">
+<div>
+<h1>💰 玩法激励金计算与结算系统</h1>
+<div class="subtitle">激励金计算参数管理 · 激励金计算结果管理</div>
+</div>
+<div class="header-links">
+<a class="header-link" onclick="showToast('历史结算单页面功能待开发，敬请期待','')">📋 查看历史结算单</a>
+<a class="header-link" onclick="openHistoryModal()">📜 查看历史结算规则</a>
+</div>
+</div>
+
+<div class="tab-nav">
+<div class="tab-nav-inner">
+<button class="tab-item active" onclick="switchTab('config')">⚙️ 激励金计算参数管理</button>
+<button class="tab-item" onclick="switchTab('result')">💰 激励金计算结果</button>
+</div>
+</div>
+
+<div class="container">
+
+<div class="tab-content active" id="tab-config">
+
+<div class="card">
+<div class="card-header">
+<h3><span class="dot" style="background:var(--primary)"></span>每月激励金预算与参数配置</h3>
+<button class="btn btn-primary btn-sm" onclick="openConfigModal(null)">➕ 新增配置</button>
+</div>
+<div class="card-body" style="padding:0">
+<div class="table-wrapper">
+<table>
+<thead><tr><th>月份</th><th>预算总额</th><th>赛道参数</th><th>扣除参数</th><th>更新时间</th><th>状态</th><th>操作</th></tr></thead>
+<tbody id="configListBody"></tbody>
+</table>
+</div>
+</div>
+</div>
+
+
+
+
+
+</div>
+
+<div class="tab-content" id="tab-result">
+
+<div id="resultContent" style="display:none">
+<div class="card">
+<div class="card-body" style="padding:16px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+<label style="font-size:14px;font-weight:600;color:#334155;white-space:nowrap">📅 结算月份</label>
+<select id="resultsMonthFilter" onchange="onMonthChange(this.value)" style="height:38px;padding:0 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);outline:none;font-family:inherit;min-width:160px"></select>
+<span id="resultStatusTag"></span>
+<span id="resultMeta" style="font-size:12px;color:var(--text-muted)"></span>
+<div style="flex:1"></div>
+<div id="resultActions" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-header"><h3><span class="dot" style="background:var(--success)"></span>当月总收益数据汇总</h3></div>
+<div class="card-body"><div class="overview-grid" id="resultOverview"></div><div class="track-stat-grid" id="resultTrackStats"></div></div>
+</div>
+
+<div class="card">
+<div class="card-header"><h3><span class="dot" style="background:var(--primary)"></span>当月玩法激励明细</h3><span id="detailCount" style="font-size:12px;color:var(--text-muted)"></span></div>
+<div class="card-body" style="padding:0">
+<div class="filter-bar">
+<select id="f-game" onchange="onDetailFilter('game',this.value)"><option value="">全部玩法</option></select>
+<select id="f-team" onchange="onDetailFilter('team',this.value)"><option value="">全部团队</option></select>
+<select id="f-track" onchange="onDetailFilter('track',this.value)"><option value="">全部赛道</option></select>
+<select id="f-subject" onchange="onDetailFilter('subject',this.value)"><option value="">全部签约主体</option></select>
+<select id="f-contract" onchange="onDetailFilter('contract',this.value)"><option value="">全部合同编号</option></select>
+<button class="btn btn-sm btn-outline" onclick="clearDetailFilters()">↺ 重置</button>
+</div>
+<div class="table-wrapper">
+<table>
+<thead><tr><th>玩法modid</th><th>玩法名</th><th>团队名</th><th>所属赛道</th><th>当月有效用户数</th><th>商业化流水</th><th>扣除比例</th><th>最终激励金</th><th>签约主体</th><th>合同编号</th></tr></thead>
+<tbody id="detailListBody"></tbody>
+</table>
+</div>
+<div class="pagination" id="detailPagination"></div>
+<div class="empty-state" id="detailListEmpty" style="display:none"><div class="empty-icon">📭</div><p>暂无符合条件的玩法明细</p></div>
+</div>
+</div>
+</div>
+
+<div class="empty-state" id="resultsEmpty"><div class="empty-icon">📭</div><p>暂无计算结果，请先配置参数并点击"开始计算"</p></div>
+
+</div>
+
+<div class="modal-overlay" id="configModal">
+<div class="modal">
+<div class="modal-header"><h3 id="configModalTitle">配置激励金参数</h3><button class="modal-close" onclick="closeConfigModal()">✕</button></div>
+<div class="modal-body">
+<div class="form-row">
+<div class="form-group"><label>结算周期 <span class="unit">（选择月份）</span></label><input type="month" id="cfgMonth"></div>
+<div class="form-group"><label>当月激励金预算总额</label><div class="budget-input-wrapper"><span class="prefix">¥</span><input type="number" id="cfgBudget" placeholder="请输入预算总额" min="0" step="0.01"></div></div>
+</div>
+<div class="tracks-grid" id="cfgTracksContainer"></div>
+<div class="track-card" style="margin-top:16px">
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px dashed var(--border)">
+<span style="font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;background:#ede9fe;color:#7c3aed">扣除</span>
+<span style="font-size:14px;font-weight:600;color:#334155">激励金扣除参数设置</span>
+<span style="font-size:12px;font-weight:400;color:var(--text-muted)">（适用于所有赛道）</span>
+</div>
+<div class="deduction-grid">
+<div class="param-group"><label>起扣商业化流水</label><div class="param-input-wrapper"><input type="number" id="cfg-deduction-startRevenue" value="${DEDUCTION_DEFAULTS.startRevenue}" min="0"><span class="unit-label">元</span></div></div>
+<div class="param-group"><label>起扣比例</label><div class="param-input-wrapper"><input type="number" id="cfg-deduction-startRate" value="${DEDUCTION_DEFAULTS.startRate}" min="0" max="100" step="0.1"><span class="unit-label">%</span></div></div>
+<div class="param-group"><label>最高扣除比例</label><div class="param-input-wrapper"><input type="number" id="cfg-deduction-maxRate" value="${DEDUCTION_DEFAULTS.maxRate}" min="0" max="100" step="0.1"><span class="unit-label">%</span></div></div>
+<div class="param-group"><label>最高扣除比例门槛商业化流水</label><div class="param-input-wrapper"><input type="number" id="cfg-deduction-maxRateRevenue" value="${DEDUCTION_DEFAULTS.maxRateRevenue}" min="0"><span class="unit-label">元</span></div></div>
+<div class="param-group"><label>最终激励金额低于X元不发放</label><div class="param-input-wrapper"><input type="number" id="cfg-deduction-minPayout" value="${DEDUCTION_DEFAULTS.minPayout}" min="0"><span class="unit-label">元</span></div></div>
+</div>
+</div>
+<div class="btn-row">
+<button class="btn btn-outline" onclick="copyLastMonthConfig()">📋 复制上月参数</button>
+<button class="btn btn-primary" onclick="saveConfig()">💾 保存配置</button>
+<button class="btn btn-secondary" onclick="closeConfigModal()">取消</button>
+</div>
+</div>
+</div>
+</div>
+
+<div class="modal-overlay" id="historyModal">
+<div class="modal">
+<div class="modal-header"><h3>📜 历史结算规则</h3><button class="modal-close" onclick="closeHistoryModal()">✕</button></div>
+<div class="modal-body" id="historyModalBody"></div>
+</div>
+</div>
+
+<div class="modal-overlay" id="detailModal">
+<div class="modal" style="max-width:1100px">
+<div class="modal-header"><h3 id="detailModalTitle">📄 激励金结算明细</h3><button class="modal-close" onclick="closeDetailModal()">✕</button></div>
+<div class="modal-body">
+<div id="detailSummary" style="display:flex;gap:24px;flex-wrap:wrap;padding:14px 16px;background:#f8fafc;border:1px solid var(--border);border-radius:10px;margin-bottom:16px;font-size:13px"></div>
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+<span style="font-size:13px;color:#64748b">按赛道筛选：</span>
+<select id="detailTrackFilter" onchange="renderDetailTable()" style="height:32px;padding:0 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;color:var(--text);outline:none;font-family:inherit"><option value="">全部赛道</option></select>
+</div>
+<div class="table-wrapper" style="max-height:50vh;overflow:auto">
+<table>
+<thead><tr><th>玩法名</th><th>所属赛道</th><th>当月有效用户数</th><th>商业化流水</th><th>扣除比例</th><th>最终激励金</th><th>开发者签约主体</th><th>合同编号</th></tr></thead>
+<tbody id="detailTableBody"></tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ==================== Data ====================
+const TRACKS=[
+  {id:'new-nonpeace',label:'新-非和平主模式切片',badge:'badge-new',badgeText:'新'},
+  {id:'classic-nonpeace',label:'经典-非和平主模式切片',badge:'badge-classic',badgeText:'经典'},
+  {id:'new-peace',label:'新-和平主模式切片',badge:'badge-new',badgeText:'新'},
+  {id:'classic-peace',label:'经典-和平主模式切片',badge:'badge-classic',badgeText:'经典'}
+];
+const DEFAULTS={maxPerGame:50000,guaranteeTopN:5,guaranteeAmount:10000,guaranteeMinUsers:100};
+const DEDUCTION_DEFAULTS={startRevenue:300000,startRate:10,maxRate:100,maxRateRevenue:1000000,minPayout:0};
+let configs=[];
+let results=[];
+let settledMonths=new Set();
+
+function makeSampleTracks(overrides){
+  return TRACKS.map(t=>{
+    let base={id:t.id,label:t.label,badgeText:t.badgeText,maxPerGame:DEFAULTS.maxPerGame,guaranteeTopN:DEFAULTS.guaranteeTopN,guaranteeAmount:DEFAULTS.guaranteeAmount,guaranteeMinUsers:DEFAULTS.guaranteeMinUsers};
+    if(overrides&&overrides[t.id])Object.assign(base,overrides[t.id]);
+    return base;
+  });
+}
+function getSampleConfigs(){
+  let now=new Date();
+  let prev1=new Date(now.getFullYear(),now.getMonth()-1,1);
+  let prev2=new Date(now.getFullYear(),now.getMonth()-2,1);
+  let fmt=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  let m1=fmt(prev1),m2=fmt(prev2);
+  return [
+    {id:'sample-'+m2,month:m2,budget:450000,deduction:{...DEDUCTION_DEFAULTS},tracks:makeSampleTracks(),updatedAt:m2.replace('-','/')+'/15 10:00:00',isSample:true},
+    {id:'sample-'+m1,month:m1,budget:500000,deduction:{...DEDUCTION_DEFAULTS},tracks:makeSampleTracks({'new-nonpeace':{maxPerGame:60000},'classic-nonpeace':{guaranteeAmount:12000}}),updatedAt:m1.replace('-','/')+'/15 10:30:00',isSample:true}
+  ];
+}
+const SAMPLE_DETAILS=[{"modid": "1401776035379317504", "game": "道友快跑", "track": "新-和平主模式切片", "users": 12933.34, "revenue": 0, "rate": 0, "amount": 1816.57, "subject": "南京颖虹网络科技有限公司", "contract": "T105-IEG-2026052800018"}, {"modid": "1405708837074363392", "game": "和平派对大乱斗", "track": "新-和平主模式切片", "users": 1160.58, "revenue": 0, "rate": 0, "amount": 1825.25, "subject": "连云港星叶未来互联网有限公司", "contract": "T105-IEG-2026073000003"}, {"modid": "1405996539183235072", "game": "和平高考", "track": "新-和平主模式切片", "users": 12976.64, "revenue": 0, "rate": 0, "amount": 2134.23, "subject": "汕头市钧烁幻域互娱科技有限公司", "contract": "T105-IEG-2026081900035"}, {"modid": "1374649487209798144", "game": "破袭平安城", "track": "新-非和平主模式切片", "users": 4382.77, "revenue": 0, "rate": 0, "amount": 575.4, "subject": "海南腾颐数字科技有限责任公司", "contract": "T105-IEG-2026010800011"}, {"modid": "1376563230138201344", "game": "向怪物开火！", "track": "新-非和平主模式切片", "users": 4914.86, "revenue": 0, "rate": 0, "amount": 1159.76, "subject": "连云港星叶未来互联网有限公司", "contract": "T105-IEG-2026042400021"}, {"modid": "1378084817501997056", "game": "末日大亨", "track": "新-非和平主模式切片", "users": 156.0, "revenue": 0, "rate": 0, "amount": 703.09, "subject": "连云港星叶未来互联网有限公司", "contract": "T105-IEG-2026042400020"}, {"modid": "1379585982798567936", "game": "泰坦觉醒", "track": "新-非和平主模式切片", "users": 7569.25, "revenue": 0, "rate": 0, "amount": 1916.88, "subject": "许昌方酋网络科技有限公司", "contract": "T105-IEG-2026022600006"}, {"modid": "1386379909239201792", "game": "穿越三国山大王", "track": "新-非和平主模式切片", "users": 4609.9, "revenue": 0, "rate": 0, "amount": 2008.9, "subject": "汕头市寰潮网络科技有限公司", "contract": "T105-IEG-2026031800006"}, {"modid": "1391163028655837696", "game": "守卫生命线：曙光", "track": "新-非和平主模式切片", "users": 3163.94, "revenue": 0, "rate": 0, "amount": 1352.55, "subject": "深圳市江月如梦文化娱乐发展有限公司", "contract": "T105-IEG-2026022600032"}, {"modid": "1402119790023194624", "game": "巨龙之力", "track": "新-非和平主模式切片", "users": 2769.79, "revenue": 0, "rate": 0, "amount": 3940.56, "subject": "南京简游网络科技有限公司", "contract": "T105-IEG-2026060500009"}, {"modid": "1406600450641375488", "game": "部落战争", "track": "新-非和平主模式切片", "users": 4139.96, "revenue": 0, "rate": 0, "amount": 1568.13, "subject": "南京成宇互娱数字科技有限公司", "contract": "T105-IEG-2026073000008"}, {"modid": "1409122996692473344", "game": "零度封锁区", "track": "新-非和平主模式切片", "users": 4661.08, "revenue": 0, "rate": 0, "amount": 332.02, "subject": "东莞元表网络科技工作室（个人独资）", "contract": "T105-IEG-2026082000018"}, {"modid": "1344338933661592832", "game": "攻楼", "track": "经典-和平主模式切片", "users": 221133.21, "revenue": 0, "rate": 0, "amount": 1109.02, "subject": "杨明", "contract": "T105-IEG-2024073000019"}, {"modid": "1355984309324889600", "game": "攻山", "track": "经典-和平主模式切片", "users": 206329.3, "revenue": 0, "rate": 0, "amount": 1414.53, "subject": "杭州艾及帝文化创意有限公司", "contract": "T105-IEG-2024122400012"}, {"modid": "1356579105265457408", "game": "手雷炸翻天", "track": "经典-和平主模式切片", "users": 63889.94, "revenue": 0, "rate": 0, "amount": 707.7, "subject": "杭州茂凯文化创意有限公司", "contract": "T105-IEG-2024122400013"}, {"modid": "1357349842155782400", "game": "我不是箭神", "track": "经典-和平主模式切片", "users": 222146.69, "revenue": 0, "rate": 0, "amount": 1147.24, "subject": "付小成", "contract": "T105-IEG-2025031000019"}, {"modid": "1366873911979003904", "game": "我在海岛送外卖", "track": "经典-和平主模式切片", "users": 26753.72, "revenue": 0, "rate": 0, "amount": 986.25, "subject": "南京成宇互娱数字科技有限公司", "contract": "T105-IEG-2025051300047"}, {"modid": "1378545914126329856", "game": "一枪爆头：狙击", "track": "经典-和平主模式切片", "users": 183844.56, "revenue": 0, "rate": 0, "amount": 2136.59, "subject": "深圳市学以网络科技有限公司", "contract": "T105-IEG-2025110400022"}, {"modid": "1251206097407049728", "game": "猫鼠大作战", "track": "经典-非和平主模式切片", "users": 13809.05, "revenue": 0, "rate": 0, "amount": 299.05, "subject": "深圳叁零贰互动娱乐有限公司", "contract": "T105-IEG-2023041200099"}, {"modid": "1265868710599464448", "game": "友尽大冒险", "track": "经典-非和平主模式切片", "users": 18997.54, "revenue": 0, "rate": 0, "amount": 2272.06, "subject": "广州品娱科技有限公司", "contract": "T105-IEG-2023033100267"}, {"modid": "1271327466122673408", "game": "逃出生天", "track": "经典-非和平主模式切片", "users": 49329.68, "revenue": 0, "rate": 0, "amount": 804.8, "subject": "深圳市江月如梦文化娱乐发展有限公司", "contract": "T105-IEG-2025053100012"}, {"modid": "1309266854220422656", "game": "空中赛车", "track": "经典-非和平主模式切片", "users": 29310.27, "revenue": 0, "rate": 0, "amount": 674.38, "subject": "深圳市学以网络科技有限公司", "contract": "T105-IEG-2023090500004"}, {"modid": "1314693516241144832", "game": "你别过来呀", "track": "经典-非和平主模式切片", "users": 13215.42, "revenue": 0, "rate": 0, "amount": 1959.1, "subject": "汕头市寰潮网络科技有限公司", "contract": "T105-IEG-2023111000014"}, {"modid": "1325840335993076480", "game": "跑酷：通天之路", "track": "经典-非和平主模式切片", "users": 22537.64, "revenue": 0, "rate": 0, "amount": 1723.92, "subject": "深圳市江月如梦文化娱乐发展有限公司", "contract": "T105-IEG-2025053100005"}, {"modid": "1334814930436633856", "game": "小镇保卫战", "track": "经典-非和平主模式切片", "users": 25360.43, "revenue": 0, "rate": 0, "amount": 1515.69, "subject": "付小成", "contract": "T105-IEG-2024060300004"}, {"modid": "1354167507864259328", "game": "惊变火车", "track": "经典-非和平主模式切片", "users": 23574.58, "revenue": 0, "rate": 0, "amount": 1612.32, "subject": "连云港星叶未来互联网有限公司", "contract": "T105-IEG-2025020600010"}, {"modid": "1356244871206173952", "game": "跑酷：登天取经", "track": "经典-非和平主模式切片", "users": 12756.44, "revenue": 0, "rate": 0, "amount": 68.0, "subject": "汕头市寰潮网络科技有限公司", "contract": "T105-IEG-2025010600004"}, {"modid": "1361248836761181952", "game": "刀锋剑影", "track": "经典-非和平主模式切片", "users": 219.86, "revenue": 0, "rate": 0, "amount": 370.19, "subject": "薛文斌", "contract": "T105-IEG-2025011700012"}, {"modid": "1362715786594018304", "game": "炸弹跑酷", "track": "经典-非和平主模式切片", "users": 25463.38, "revenue": 0, "rate": 0, "amount": 35.72, "subject": "成都钰豆网络科技有限公司", "contract": "T105-IEG-2025022500015"}, {"modid": "1369299343903842048", "game": "暴打小怪兽", "track": "经典-非和平主模式切片", "users": 28899.29, "revenue": 0, "rate": 0, "amount": 1635.71, "subject": "深圳黑灵文化发展有限公司", "contract": "T105-IEG-2025051300023"}, {"modid": "1370412731093531904", "game": "和平铁轨", "track": "经典-非和平主模式切片", "users": 29864.34, "revenue": 0, "rate": 0, "amount": 992.17, "subject": "成都迈瑞科科技有限公司", "contract": "T105-IEG-2025081800003"}, {"modid": "1375346287626432000", "game": "哎哟！你过不来", "track": "经典-非和平主模式切片", "users": 55980.24, "revenue": 0, "rate": 0, "amount": 1487.98, "subject": "汕头市寰潮网络科技有限公司", "contract": "T105-IEG-2025101000018"}, {"modid": "1380367149978174976", "game": "坦克改装大战", "track": "经典-非和平主模式切片", "users": 18597.05, "revenue": 0, "rate": 0, "amount": 1226.62, "subject": "凌春燕", "contract": "T105-IEG-2025121600013"}, {"modid": "1380810359008396800", "game": "潜行小队", "track": "经典-非和平主模式切片", "users": 23129.2, "revenue": 0, "rate": 0, "amount": 928.97, "subject": "深圳市慈力科技有限公司", "contract": "T105-IEG-2025092500018"}, {"modid": "1381480315849015552", "game": "疯狂龙卷风", "track": "经典-非和平主模式切片", "users": 9529.6, "revenue": 0, "rate": 0, "amount": 1816.18, "subject": "汕头市寰潮网络科技有限公司", "contract": "T105-IEG-2025112400029"}, {"modid": "1386128406163278848", "game": "我得意的飘", "track": "经典-非和平主模式切片", "users": 5115.02, "revenue": 0, "rate": 0, "amount": 1217.73, "subject": "汕头市寰潮网络科技有限公司", "contract": "T105-IEG-2025121600012"}, {"modid": "1386815152350824192", "game": "升枪打僵尸", "track": "经典-非和平主模式切片", "users": 11551.42, "revenue": 0, "rate": 0, "amount": 2217.01, "subject": "南京简游网络科技有限公司", "contract": "T105-IEG-2026010800020"}, {"modid": "1388456369220240384", "game": "天下第一武道会", "track": "经典-非和平主模式切片", "users": 19589.82, "revenue": 0, "rate": 0, "amount": 2054.01, "subject": "凌春燕", "contract": "T105-IEG-2026010800010"}, {"modid": "1389321353943874304", "game": "一拳健身房", "track": "经典-非和平主模式切片", "users": 16443.72, "revenue": 0, "rate": 0, "amount": 1705.44, "subject": "杭州灵灵柒科技有限公司", "contract": "T105-IEG-2026012800008"}, {"modid": "1390270166380624640", "game": "神级农场模拟器", "track": "经典-非和平主模式切片", "users": 61369.85, "revenue": 0, "rate": 0, "amount": 1828.1, "subject": "成都钰豆网络科技有限公司", "contract": "T105-IEG-2026011500020"}];
+function getSampleResults(){
+  let details=SAMPLE_DETAILS;
+  let total=details.reduce((s,d)=>s+d.amount,0);
+  let trackMap={};
+  details.forEach(d=>{
+    if(!trackMap[d.track])trackMap[d.track]={trackId:'',trackLabel:d.track,simulatedUsers:0,guaranteeMinUsers:0,guaranteeTopN:0,effectiveUsersForGuarantee:0,guaranteedCount:0,guaranteeAmount:0,totalGuarantee:0,maxPerGame:0,maxCap:0,estimate:0};
+    trackMap[d.track].simulatedUsers+=d.users;
+    trackMap[d.track].guaranteedCount++;
+    trackMap[d.track].estimate+=d.amount;
+  });
+  let idMap={};TRACKS.forEach(t=>idMap[t.label]=t.id);
+  let tracks=Object.values(trackMap).map(t=>{t.trackId=idMap[t.trackLabel]||'';t.simulatedUsers=Math.round(t.simulatedUsers);t.estimate=Math.round(t.estimate*100)/100;return t;});
+  return [{id:Date.now(),month:'2026-08',budget:500000,deduction:{...DEDUCTION_DEFAULTS},calcTime:'2026/9/10 10:00:00',tracks:tracks,totalEstimate:Math.round(total*100)/100,settled:false,details:details,isSample:true}];
+}
+
+// ==================== Init ====================
+function switchTab(tab){
+  document.querySelectorAll('.tab-item').forEach((el,i)=>el.classList.toggle('active',(tab==='config'&&i===0)||(tab==='result'&&i===1)));
+  document.getElementById('tab-config').classList.toggle('active',tab==='config');
+  document.getElementById('tab-result').classList.toggle('active',tab==='result');
+}
+function init(){
+  renderCfgTracks();
+  loadStorage();
+  renderConfigList();
+  renderResults();
+}
+function renderCfgTracks(){
+  document.getElementById('cfgTracksContainer').innerHTML=TRACKS.map(t=>`
+    <div class="track-card">
+      <div class="track-header"><span class="track-badge ${t.badge}">${t.badgeText}</span><span class="track-name">${t.label}</span></div>
+      <div class="track-params">
+        <div class="param-group"><label>单玩法单月最高激励</label><div class="param-input-wrapper"><input type="number" id="cfg-${t.id}-max" value="${DEFAULTS.maxPerGame}" min="0"><span class="unit-label">元</span></div></div>
+        <div class="param-group"><label>前N名保价 / 保价金额</label><div class="inline-two"><div class="param-input-wrapper" style="flex:1"><input type="number" id="cfg-${t.id}-topN" value="${DEFAULTS.guaranteeTopN}" min="1"><span class="unit-label">名</span></div><div class="param-input-wrapper" style="flex:1"><input type="number" id="cfg-${t.id}-amount" value="${DEFAULTS.guaranteeAmount}" min="0"><span class="unit-label">元</span></div></div></div>
+        <div class="param-group"><label>保价最低有效用户数门槛</label><div class="param-input-wrapper"><input type="number" id="cfg-${t.id}-guaranteeMinUsers" value="${DEFAULTS.guaranteeMinUsers}" min="0"><span class="unit-label">人</span></div></div>
+      </div>
+    </div>`).join('');
+}
+
+// ==================== Storage ====================
+function saveStorage(){try{localStorage.setItem('incentive_data',JSON.stringify({configs,results,settledMonths:[...settledMonths]}))}catch(e){}}
+function loadStorage(){try{let d=JSON.parse(localStorage.getItem('incentive_data'));if(d){configs=d.configs||[];results=d.results||[];settledMonths=new Set(d.settledMonths||[]);}}catch(e){}
+  seedSampleData();
+}
+function seedSampleData(){
+  let changed=false;
+  let existingMonths=new Set(configs.map(c=>c.month));
+  getSampleConfigs().forEach(c=>{if(!existingMonths.has(c.month)){configs.push(c);changed=true;}});
+  if(!results.some(r=>r.isSample)){results.push(...getSampleResults());changed=true;}
+  configs.sort((a,b)=>a.month.localeCompare(b.month));
+  if(changed)saveStorage();
+}
+
+// ==================== Read Params ====================
+function getCfgTrackParams(){
+  return TRACKS.map(t=>({
+    id:t.id,label:t.label,badgeText:t.badgeText,
+    maxPerGame:parseFloat(document.getElementById('cfg-'+t.id+'-max').value)||0,
+    guaranteeTopN:parseInt(document.getElementById('cfg-'+t.id+'-topN').value)||0,
+    guaranteeAmount:parseFloat(document.getElementById('cfg-'+t.id+'-amount').value)||0,
+    guaranteeMinUsers:parseInt(document.getElementById('cfg-'+t.id+'-guaranteeMinUsers').value)||0
+  }));
+}
+
+function getCfgDeductionParams(){
+  return {
+    startRevenue:parseFloat(document.getElementById('cfg-deduction-startRevenue').value)||0,
+    startRate:parseFloat(document.getElementById('cfg-deduction-startRate').value)||0,
+    maxRate:parseFloat(document.getElementById('cfg-deduction-maxRate').value)||0,
+    maxRateRevenue:parseFloat(document.getElementById('cfg-deduction-maxRateRevenue').value)||0,
+    minPayout:parseFloat(document.getElementById('cfg-deduction-minPayout').value)||0
+  };
+}
+
+function simulateTrack(track){
+  let simUsers=Math.floor(Math.random()*800)+50;
+  let effUsers=Math.max(simUsers,track.guaranteeMinUsers);
+  let guaranteedCount=Math.min(track.guaranteeTopN,effUsers);
+  let totalGuarantee=guaranteedCount*track.guaranteeAmount;
+  let maxCap=track.maxPerGame*track.guaranteeTopN;
+  let estimate=Math.min(totalGuarantee,maxCap);
+  return{trackId:track.id,trackLabel:track.label,simulatedUsers:simUsers,guaranteeMinUsers:track.guaranteeMinUsers,guaranteeTopN:track.guaranteeTopN,effectiveUsersForGuarantee:effUsers,guaranteedCount,guaranteeAmount:track.guaranteeAmount,totalGuarantee,maxPerGame:track.maxPerGame,maxCap,estimate:Math.round(estimate*100)/100};
+}
+
+// ==================== Config Modal ====================
+function openConfigModal(month){
+  renderCfgTracks();
+  let title=document.getElementById('configModalTitle');
+  if(month){
+    title.textContent='编辑 '+month+' 激励金参数';
+    let c=configs.find(x=>x.month===month);
+    if(c){
+      document.getElementById('cfgMonth').value=c.month;
+      document.getElementById('cfgBudget').value=c.budget;
+      let d=c.deduction||{};
+      if(d.startRevenue!==undefined){
+        document.getElementById('cfg-deduction-startRevenue').value=d.startRevenue;
+        document.getElementById('cfg-deduction-startRate').value=d.startRate;
+        document.getElementById('cfg-deduction-maxRate').value=d.maxRate;
+        document.getElementById('cfg-deduction-maxRateRevenue').value=d.maxRateRevenue;
+        document.getElementById('cfg-deduction-minPayout').value=d.minPayout!==undefined?d.minPayout:DEDUCTION_DEFAULTS.minPayout;
+      }
+      (c.tracks||[]).forEach(t=>{
+        document.getElementById('cfg-'+t.id+'-max').value=t.maxPerGame;
+        document.getElementById('cfg-'+t.id+'-topN').value=t.guaranteeTopN;
+        document.getElementById('cfg-'+t.id+'-amount').value=t.guaranteeAmount;
+        document.getElementById('cfg-'+t.id+'-guaranteeMinUsers').value=t.guaranteeMinUsers;
+      });
+    }
+  }else{
+    title.textContent='新增激励金参数配置';
+    document.getElementById('cfgMonth').value=new Date().toISOString().slice(0,7);
+    document.getElementById('cfgBudget').value='500000';
+    document.getElementById('cfg-deduction-startRevenue').value=DEDUCTION_DEFAULTS.startRevenue;
+    document.getElementById('cfg-deduction-startRate').value=DEDUCTION_DEFAULTS.startRate;
+    document.getElementById('cfg-deduction-maxRate').value=DEDUCTION_DEFAULTS.maxRate;
+    document.getElementById('cfg-deduction-maxRateRevenue').value=DEDUCTION_DEFAULTS.maxRateRevenue;
+    document.getElementById('cfg-deduction-minPayout').value=DEDUCTION_DEFAULTS.minPayout;
+  }
+  document.getElementById('configModal').classList.add('active');
+}
+function closeConfigModal(){document.getElementById('configModal').classList.remove('active')}
+function copyLastMonthConfig(){
+  let month=document.getElementById('cfgMonth').value;
+  if(!month){showToast('请先选择结算周期','error');return}
+  let dt=new Date(month+'-01T00:00:00');
+  dt.setMonth(dt.getMonth()-1);
+  let lastMonth=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');
+  let c=configs.find(x=>x.month===lastMonth);
+  if(!c){showToast(`未找到 ${lastMonth} 的参数配置`,'error');return}
+  document.getElementById('cfgBudget').value=c.budget;
+  let d=c.deduction||{};
+  document.getElementById('cfg-deduction-startRevenue').value=d.startRevenue;
+  document.getElementById('cfg-deduction-startRate').value=d.startRate;
+  document.getElementById('cfg-deduction-maxRate').value=d.maxRate;
+  document.getElementById('cfg-deduction-maxRateRevenue').value=d.maxRateRevenue;
+  document.getElementById('cfg-deduction-minPayout').value=d.minPayout!==undefined?d.minPayout:DEDUCTION_DEFAULTS.minPayout;
+  (c.tracks||[]).forEach(t=>{
+    document.getElementById('cfg-'+t.id+'-max').value=t.maxPerGame;
+    document.getElementById('cfg-'+t.id+'-topN').value=t.guaranteeTopN;
+    document.getElementById('cfg-'+t.id+'-amount').value=t.guaranteeAmount;
+    document.getElementById('cfg-'+t.id+'-guaranteeMinUsers').value=t.guaranteeMinUsers;
+  });
+  showToast(`已复制 ${lastMonth} 的参数配置`,'success');
+}
+
+// ==================== Actions ====================
+function saveConfig(){
+  let month=document.getElementById('cfgMonth').value;
+  let budget=parseFloat(document.getElementById('cfgBudget').value)||0;
+  if(!month){showToast('请选择结算周期','error');return}
+  if(budget<=0){showToast('请输入有效的预算总额','error');return}
+  let tracks=getCfgTrackParams();
+  for(let t of tracks){if(t.maxPerGame<=0||t.guaranteeTopN<=0||t.guaranteeAmount<=0||t.guaranteeMinUsers<=0){showToast(`赛道"${t.label}"参数不完整`,'error');return}}
+  let deduction=getCfgDeductionParams();
+  let existing=configs.find(c=>c.month===month);
+  let updatedAt=new Date().toLocaleString('zh-CN');
+  if(existing){
+    existing.budget=budget;existing.deduction=deduction;existing.tracks=tracks;existing.updatedAt=updatedAt;
+  }else{
+    configs.push({id:Date.now(),month,budget,deduction,tracks,updatedAt});
+  }
+  configs.sort((a,b)=>a.month.localeCompare(b.month));
+  saveStorage();renderConfigList();
+  closeConfigModal();
+  showToast(`${month} 配置已保存`,'success');
+}
+function startCalc(month){
+  let c=configs.find(x=>x.month===month);
+  if(!c){showToast('未找到该月配置','error');return}
+  let details=c.tracks.map(t=>simulateTrack(t));
+  let total=details.reduce((s,t)=>s+t.estimate,0);
+  results.push({id:Date.now(),month:c.month,budget:c.budget,deduction:c.deduction,calcTime:new Date().toLocaleString('zh-CN'),tracks:details,totalEstimate:Math.round(total*100)/100,settled:false});
+  saveStorage();renderResults();renderConfigList();
+  switchTab('result');
+  showToast(`${c.month} 计算完成！`,'success');
+}
+
+function initiateSettle(id){
+  let r=results.find(x=>x.id===id);
+  if(!r||r.settled)return;
+  if(!confirm(`确认基于 ${r.month} 的计算结果发起正式结算？\n预计支出：¥${r.totalEstimate.toLocaleString()}`))return;
+  r.settled=true;settledMonths.add(r.month);saveStorage();renderResults();
+  showToast(`${r.month} 结算已完成！`,'success');
+}
+
+function exportResults(){
+  if(!results.length){showToast('暂无可导出的计算结果','error');return}
+  let csv='\uFEFF结算月份,预算总额,计算时间,赛道,模拟有效用户数,保价最低门槛,前N名保价配置,实际保价人数,保价单价,保价总额,最高激励,赛道预估,起扣流水,起扣比例,最高扣除比例,最高扣除门槛流水,总预估,结算状态\n';
+  results.forEach(r=>{
+    let d=r.deduction||{};
+    r.tracks.forEach(t=>{
+      csv+=`${r.month},${r.budget},"${r.calcTime}",${t.trackLabel},${t.simulatedUsers},${t.guaranteeMinUsers},${t.guaranteeTopN||''},${t.guaranteedCount},${t.guaranteeAmount},${t.totalGuarantee},${t.maxPerGame},${t.estimate},${d.startRevenue||''},${d.startRate||''},${d.maxRate||''},${d.maxRateRevenue||''},${r.totalEstimate},${r.settled?'已结算':'待结算'}\n`;
+    });
+  });
+  let b=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  let a=document.createElement('a');a.href=URL.createObjectURL(b);
+  a.download=`激励金计算结果_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+  showToast('导出成功！','success');
+}
+
+function exportMonthResult(month){
+  let r=results.filter(x=>x.month===month);
+  if(!r.length)return;
+  let csv='\uFEFF结算月份,预算总额,计算时间,赛道,模拟有效用户数,保价最低门槛,前N名保价配置,实际保价人数,保价单价,保价总额,最高激励,赛道预估,起扣流水,起扣比例,最高扣除比例,最高扣除门槛流水,总预估,结算状态\n';
+  r.forEach(res=>{
+    let d=res.deduction||{};
+    res.tracks.forEach(t=>{
+      csv+=`${res.month},${res.budget},"${res.calcTime}",${t.trackLabel},${t.simulatedUsers},${t.guaranteeMinUsers},${t.guaranteeTopN||''},${t.guaranteedCount},${t.guaranteeAmount},${t.totalGuarantee},${t.maxPerGame},${t.estimate},${d.startRevenue||''},${d.startRate||''},${d.maxRate||''},${d.maxRateRevenue||''},${res.totalEstimate},${res.settled?'已结算':'待结算'}\n`;
+    });
+  });
+  let b=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  let a=document.createElement('a');a.href=URL.createObjectURL(b);
+  a.download=`激励金结果_${month}.csv`;a.click();
+  showToast(`已导出 ${month} 结算明细`,'success');
+}
+
+function exportSingleResult(id){
+  let r=results.find(x=>x.id===id);
+  if(!r)return;
+  let csv='\uFEFF结算月份,预算总额,计算时间,赛道,模拟有效用户数,保价最低门槛,前N名保价配置,实际保价人数,保价单价,保价总额,最高激励,赛道预估,起扣流水,起扣比例,最高扣除比例,最高扣除门槛流水,总预估,结算状态\n';
+  let d=r.deduction||{};
+  r.tracks.forEach(t=>{
+    csv+=`${r.month},${r.budget},"${r.calcTime}",${t.trackLabel},${t.simulatedUsers},${t.guaranteeMinUsers},${t.guaranteeTopN||''},${t.guaranteedCount},${t.guaranteeAmount},${t.totalGuarantee},${t.maxPerGame},${t.estimate},${d.startRevenue||''},${d.startRate||''},${d.maxRate||''},${d.maxRateRevenue||''},${r.totalEstimate},${r.settled?'已结算':'待结算'}\n`;
+  });
+  let b=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  let a=document.createElement('a');a.href=URL.createObjectURL(b);
+  a.download=`激励金计算结果_${r.month}_${r.id}.csv`;a.click();
+  showToast(`已导出 ${r.month} 计算结果`,'success');
+}
+
+// ==================== Config List ====================
+function renderConfigList(){
+  let tbody=document.getElementById('configListBody');
+  if(!tbody)return;
+  if(!configs.length){
+    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:32px">暂无配置，请点击右上角「新增配置」创建激励金预算与参数</td></tr>';
+    return;
+  }
+  let latestMonth=configs[configs.length-1].month;
+  let latestTag='<span style="display:inline-block;margin-left:6px;font-size:11px;font-weight:600;color:#4f46e5;background:#eef2ff;padding:2px 8px;border-radius:20px;vertical-align:middle">最新</span>';
+  tbody.innerHTML=configs.map(c=>{
+    let d=c.deduction||{};
+    let isLatest=c.month===latestMonth;
+    let trackSummary=(c.tracks||[]).map(t=>{
+      let badgeCls=t.badgeText==='经典'?'classic':'new';
+      return `<div class="param-group">
+        <div class="param-group-title"><span class="mini-badge ${badgeCls}">${t.badgeText||''}</span>${t.label}</div>
+        <div class="param-chips">
+          <span class="param-chip"><span class="pc-label">最高激励</span><span class="pc-val money">¥${(t.maxPerGame||0).toLocaleString()}</span></span>
+          <span class="param-chip"><span class="pc-label">前${t.guaranteeTopN||0}名保价</span><span class="pc-val money">¥${(t.guaranteeAmount||0).toLocaleString()}</span></span>
+          <span class="param-chip"><span class="pc-label">保价门槛</span><span class="pc-val">${t.guaranteeMinUsers||0}人</span></span>
+        </div>
+      </div>`;
+    }).join('');
+    let dedSummary=`<div class="param-chips">
+      <span class="param-chip"><span class="pc-label">起扣流水</span><span class="pc-val money">¥${(d.startRevenue||0).toLocaleString()}</span></span>
+      <span class="param-chip"><span class="pc-label">起扣比例</span><span class="pc-val">${d.startRate||0}%</span></span>
+      <span class="param-chip"><span class="pc-label">最高扣除</span><span class="pc-val">${d.maxRate||0}%</span></span>
+      <span class="param-chip"><span class="pc-label">门槛流水</span><span class="pc-val money">¥${(d.maxRateRevenue||0).toLocaleString()}</span></span>
+      <span class="param-chip"><span class="pc-label">不发放门槛</span><span class="pc-val money">¥${(d.minPayout||0).toLocaleString()}</span></span>
+    </div>`;
+    let actions=`<button class="btn btn-sm btn-outline" onclick="openConfigModal('${c.month}')">✏️ 编辑</button>`;
+    if(isLatest){actions+=` <button class="btn btn-sm btn-success" onclick="startCalc('${c.month}')">🔢 开始计算</button>`;}
+    let statusHtml=settledMonths.has(c.month)?'<span class="status-settled">✅ 已结算</span>':'<span class="status-pending">⏳ 未结算</span>';
+    return `<tr>
+      <td><strong>${c.month}</strong>${isLatest?latestTag:''}</td>
+      <td class="amount">¥${c.budget.toLocaleString()}</td>
+      <td>${trackSummary}</td>
+      <td>${dedSummary}</td>
+      <td>${c.updatedAt||''}</td>
+      <td style="white-space:nowrap">${statusHtml}</td>
+      <td style="white-space:nowrap">${actions}</td>
+    </tr>`;
+  }).join('');
+}
+// ==================== Render ====================
+const TRACK_CATEGORIES=[
+  {name:'新-非切片',label:'新-非和平主模式切片',bg:'linear-gradient(135deg,#3b82f6,#2563eb)'},
+  {name:'新-切片',label:'新-和平主模式切片',bg:'linear-gradient(135deg,#8b5cf6,#7c3aed)'},
+  {name:'经典-非切片',label:'经典-非和平主模式切片',bg:'linear-gradient(135deg,#f59e0b,#d97706)'},
+  {name:'经典-切片',label:'经典-和平主模式切片',bg:'linear-gradient(135deg,#f97316,#ea580c)'}
+];
+let currentResultMonth='';
+let currentResult=null;
+let detailFilters={game:'',team:'',track:'',subject:'',contract:''};
+let detailPage=1,detailPageSize=20;
+function money(v){return Math.round((v||0)*100)/100}
+function getLatestResult(month){
+  let list=results.filter(r=>r.month===month);
+  if(!list.length)return null;
+  let sample=list.filter(r=>r.isSample&&r.details&&r.details.length);
+  return sample.length?sample[0]:list.reduce((a,b)=>a.id>b.id?a:b);
+}
+function renderResults(){
+  let container=document.getElementById('resultContent');
+  let empty=document.getElementById('resultsEmpty');
+  if(!results.length){container.style.display='none';empty.style.display='';return}
+  container.style.display='';empty.style.display='none';
+  let allMonths=[...new Set(results.map(r=>r.month))].sort();
+  if(!allMonths.includes(currentResultMonth))currentResultMonth=allMonths[allMonths.length-1];
+  document.getElementById('resultsMonthFilter').innerHTML=allMonths.map(m=>`<option value="${m}" ${m===currentResultMonth?'selected':''}>${m}</option>`).join('');
+  currentResult=getLatestResult(currentResultMonth);
+  renderResultHeader(currentResult);
+  renderOverview(currentResult);
+  renderTrackStats(currentResult);
+  renderDetailFilterOptions();
+  renderDetailList();
+}
+function renderResultHeader(r){
+  document.getElementById('resultStatusTag').innerHTML=r.settled?'<span class="status-settled">✅ 已基于该结果完成结算</span>':'<span class="status-pending">⏳ 待结算</span>';
+  document.getElementById('resultMeta').textContent=`计算时间：${r.calcTime||''}`;
+  let act='';
+  if(!r.settled)act+=`<button class="btn btn-sm btn-success" onclick="initiateSettle(${r.id})">📋 发起正式结算</button>`;
+  act+=`<button class="btn btn-sm btn-outline" onclick="exportDetail(${r.id})">📥 导出明细</button>`;
+  document.getElementById('resultActions').innerHTML=act;
+}
+function renderOverview(r){
+  let details=r.details||[];
+  let totalExpense=details.length?details.reduce((s,d)=>s+d.amount,0):(r.totalEstimate||0);
+  let playCount=details.length||(r.tracks||[]).length;
+  document.getElementById('resultOverview').innerHTML=`
+    <div class="overview-item"><div class="ov-label">当月总预算</div><div class="ov-value">¥${money(r.budget).toLocaleString()}</div></div>
+    <div class="overview-item"><div class="ov-label">当月预计支出总金额</div><div class="ov-value accent">¥${money(totalExpense).toLocaleString()}</div></div>
+    <div class="overview-item"><div class="ov-label">当月激励玩法总数</div><div class="ov-value">${playCount}</div></div>`;
+}
+function renderTrackStats(r){
+  let details=r.details||[];
+  let totalAmount=details.length?details.reduce((s,d)=>s+d.amount,0):(r.totalEstimate||0);
+  let totalCount=details.length;
+  document.getElementById('resultTrackStats').innerHTML=TRACK_CATEGORIES.map(cat=>{
+    let rows=details.filter(d=>d.track===cat.label);
+    let cnt=rows.length;
+    let amt=rows.reduce((s,d)=>s+d.amount,0);
+    let cntPct=totalCount?(cnt/totalCount*100):0;
+    let amtPct=totalAmount?(amt/totalAmount*100):0;
+    let avg=cnt?(amt/cnt):0;
+    return `<div class="track-stat-card">
+      <div class="ts-header" style="background:${cat.bg}">${cat.name}</div>
+      <div class="ts-grid">
+        <div><div class="ts-label">玩法数</div><div class="ts-val">${cnt}</div></div>
+        <div><div class="ts-label">预计支出总金额</div><div class="ts-val">¥${money(amt).toLocaleString()}</div></div>
+        <div><div class="ts-label">玩法数量占比</div><div class="ts-val">${cntPct.toFixed(1)}%</div></div>
+        <div><div class="ts-label">预计支出占比</div><div class="ts-val">${amtPct.toFixed(1)}%</div></div>
+        <div><div class="ts-label">平均每玩法支出</div><div class="ts-val">¥${money(avg).toLocaleString()}</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function renderDetailFilterOptions(){
+  let details=currentResult.details||[];
+  let uniq=fn=>[...new Set(details.map(fn))].filter(v=>v!==''&&v!=null);
+  let opts=(list,allLabel)=>['<option value="">'+allLabel+'</option>'].concat(list.map(v=>`<option value="${v}">${v}</option>`)).join('');
+  document.getElementById('f-game').innerHTML=opts(uniq(d=>d.game),'全部玩法');
+  document.getElementById('f-team').innerHTML=opts(uniq(d=>d.team||d.subject),'全部团队');
+  document.getElementById('f-track').innerHTML=opts(uniq(d=>d.track),'全部赛道');
+  document.getElementById('f-subject').innerHTML=opts(uniq(d=>d.subject),'全部签约主体');
+  document.getElementById('f-contract').innerHTML=opts(uniq(d=>d.contract),'全部合同编号');
+}
+function renderDetailList(){
+  let tbody=document.getElementById('detailListBody');
+  let empty=document.getElementById('detailListEmpty');
+  let count=document.getElementById('detailCount');
+  if(!currentResult)return;
+  let details=currentResult.details||[];
+  if(!details.length){
+    tbody.innerHTML='';empty.style.display='';count.textContent='';
+    document.getElementById('detailPagination').innerHTML='';
+    empty.querySelector('p').textContent='该结果暂无玩法级明细数据（模拟计算结果仅含赛道汇总）';
+    return;
+  }
+  let f=detailFilters;
+  let rows=details.filter(d=>{
+    if(f.game&&d.game!==f.game)return false;
+    if(f.team&&(d.team||d.subject)!==f.team)return false;
+    if(f.track&&d.track!==f.track)return false;
+    if(f.subject&&d.subject!==f.subject)return false;
+    if(f.contract&&d.contract!==f.contract)return false;
+    return true;
+  });
+  count.textContent=`共 ${details.length} 个玩法，筛选后 ${rows.length} 个`;
+  let totalPages=Math.max(1,Math.ceil(rows.length/detailPageSize));
+  if(detailPage>totalPages)detailPage=totalPages;
+  if(detailPage<1)detailPage=1;
+  let start=(detailPage-1)*detailPageSize;
+  let pageRows=rows.slice(start,start+detailPageSize);
+  if(!rows.length){tbody.innerHTML='';empty.style.display='';renderDetailPagination(rows.length);return}
+  empty.style.display='none';
+  tbody.innerHTML=pageRows.map(d=>`
+    <tr>
+      <td style="font-size:12px;color:var(--text-muted)">${d.modid||''}</td>
+      <td><strong>${d.game}</strong></td>
+      <td>${d.team||d.subject||''}</td>
+      <td>${d.track}</td>
+      <td>${Math.round(d.users||0).toLocaleString()}</td>
+      <td>¥${money(d.revenue).toLocaleString()}</td>
+      <td>${d.rate||0}%</td>
+      <td class="amount">¥${money(d.amount).toLocaleString()}</td>
+      <td>${d.subject||''}</td>
+      <td style="font-size:12px;color:var(--text-muted)">${d.contract||''}</td>
+    </tr>`).join('');
+  renderDetailPagination(rows.length);
+}
+function renderDetailPagination(total){
+  let pager=document.getElementById('detailPagination');
+  if(!total){pager.innerHTML='';return}
+  let totalPages=Math.max(1,Math.ceil(total/detailPageSize));
+  let sizes=[10,20,50,100];
+  pager.innerHTML=`
+    <span class="pager-info">共 ${total} 条</span>
+    <select onchange="onPageSizeChange(this.value)">${sizes.map(n=>`<option value="${n}" ${n===detailPageSize?'selected':''}>${n} 条/页</option>`).join('')}</select>
+    <button class="page-btn" ${detailPage<=1?'disabled':''} onclick="gotoDetailPage(${detailPage-1})">上一页</button>
+    <span class="page-num">第 ${detailPage} / ${totalPages} 页</span>
+    <button class="page-btn" ${detailPage>=totalPages?'disabled':''} onclick="gotoDetailPage(${detailPage+1})">下一页</button>`;
+}
+function gotoDetailPage(p){detailPage=p;renderDetailList();}
+function onPageSizeChange(n){detailPageSize=parseInt(n,10);detailPage=1;renderDetailList();}
+function onMonthChange(m){currentResultMonth=m;renderResults();}
+function onDetailFilter(key,val){detailFilters[key]=val;detailPage=1;renderDetailList();}
+function clearDetailFilters(){
+  detailFilters={game:'',team:'',track:'',subject:'',contract:''};
+  detailPage=1;
+  ['f-game','f-team','f-track','f-subject','f-contract'].forEach(id=>{let el=document.getElementById(id);if(el)el.value='';});
+  renderDetailList();
+}
+function exportDetail(id){
+  let r=results.find(x=>x.id===id);
+  if(!r)return;
+  let details=r.details||[];
+  if(!details.length){showToast('该结果暂无玩法明细可导出','error');return}
+  let csv='\uFEFF玩法modid,玩法名,团队名,所属赛道,当月有效用户数,商业化流水,扣除比例,最终激励金,签约主体,合同编号\n';
+  details.forEach(d=>{csv+=`${d.modid||''},${d.game},${d.team||d.subject||''},${d.track},${Math.round(d.users||0)},${d.revenue||0},${d.rate||0}%,${d.amount||0},${d.subject||''},${d.contract||''}\n`;});
+  let b=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  let a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`激励金玩法明细_${r.month}.csv`;a.click();
+  showToast('明细导出成功','success');
+}
+
+// ==================== History Modal ====================
+function openHistoryModal(){
+  let body=document.getElementById('historyModalBody');
+  let allMonths=[...new Set(results.map(r=>r.month))].sort().reverse();
+  if(!allMonths.length){
+    body.innerHTML='<div class="empty-state"><div class="empty-icon">📭</div><p>暂无历史结算规则记录</p></div>';
+  }else{
+    body.innerHTML=allMonths.map(m=>{
+      let r=results.filter(x=>x.month===m);
+      let latest=r[r.length-1];
+      let d=latest.deduction||{};
+      return `<div class="history-month">
+        <h4>📅 ${m} — 预算总额：¥${(latest.budget||0).toLocaleString()} — 状态：${latest.settled?'已结算':'待结算'}</h4>
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px">扣除参数：起扣流水 ¥${(d.startRevenue||0).toLocaleString()} | 起扣比例 ${d.startRate||0}% | 最高扣除 ${d.maxRate||0}% | 最高扣除比例门槛流水 ¥${(d.maxRateRevenue||0).toLocaleString()} | 最终激励低于 ¥${(d.minPayout||0).toLocaleString()} 不发放</div>
+        <div class="history-params">${(latest.tracks||[]).map(t=>`
+          <div class="history-param-item">
+            <div class="hp-label">${t.trackLabel}</div>
+            <div class="hp-value">
+              最高 ¥${(t.maxPerGame||0).toLocaleString()} | 前${t.guaranteeTopN||0}名保价 ¥${(t.guaranteeAmount||0).toLocaleString()}<br>
+              保价门槛 ${t.guaranteeMinUsers||0}人 | 预估 ¥${(t.estimate||0).toLocaleString()}
+            </div>
+          </div>
+        `).join('')}</div>
+        <button class="btn btn-sm btn-outline" onclick="exportMonthResult('${m}')">📥 导出${m}结算明细</button>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('historyModal').classList.add('active');
+}
+function closeHistoryModal(){document.getElementById('historyModal').classList.remove('active')}
+
+// ==================== Detail Modal ====================
+let currentDetail=null;
+function openDetailModal(id){
+  let r=results.find(x=>x.id===id);
+  if(!r||!r.details)return;
+  currentDetail=r;
+  document.getElementById('detailModalTitle').textContent=`📄 ${r.month} 激励金结算明细`;
+  let tracks=[...new Set(r.details.map(d=>d.track))];
+  document.getElementById('detailTrackFilter').innerHTML='<option value="">全部赛道</option>'+tracks.map(t=>`<option value="${t}">${t}</option>`).join('');
+  let total=r.details.reduce((s,d)=>s+d.amount,0);
+  let users=r.details.reduce((s,d)=>s+d.users,0);
+  document.getElementById('detailSummary').innerHTML=`
+    <span><strong>结算月份</strong>：${r.month}</span>
+    <span><strong>预算总额</strong>：¥${(r.budget||0).toLocaleString()}</span>
+    <span><strong>玩法总数</strong>：${r.details.length}</span>
+    <span><strong>当月有效用户数合计</strong>：${Math.round(users).toLocaleString()}</span>
+    <span><strong>最终激励金合计</strong>：¥${total.toLocaleString()}</span>`;
+  renderDetailTable();
+  document.getElementById('detailModal').classList.add('active');
+}
+function renderDetailTable(){
+  if(!currentDetail)return;
+  let filter=document.getElementById('detailTrackFilter').value;
+  let rows=currentDetail.details.filter(d=>!filter||d.track===filter);
+  document.getElementById('detailTableBody').innerHTML=rows.map(d=>`
+    <tr>
+      <td><strong>${d.game}</strong></td>
+      <td>${d.track}</td>
+      <td>${(d.users||0).toLocaleString()}</td>
+      <td>¥${(d.revenue||0).toLocaleString()}</td>
+      <td>${d.rate||0}%</td>
+      <td class="amount">¥${(d.amount||0).toLocaleString()}</td>
+      <td>${d.subject||''}</td>
+      <td style="font-size:12px;color:var(--text-muted)">${d.contract||''}</td>
+    </tr>`).join('');
+}
+function closeDetailModal(){document.getElementById('detailModal').classList.remove('active')}
+
+// ==================== Toast ====================
+function showToast(msg,type){
+  let el=document.getElementById('toast');
+  el.textContent=msg;el.className='toast '+type+' show';
+  setTimeout(()=>el.classList.remove('show'),2500);
+}
+
+// ==================== Modal click outside ====================
+document.getElementById('historyModal').addEventListener('click',function(e){if(e.target===this)closeHistoryModal()});
+document.getElementById('configModal').addEventListener('click',function(e){if(e.target===this)closeConfigModal()});
+document.getElementById('detailModal').addEventListener('click',function(e){if(e.target===this)closeDetailModal()});
+
+init();
+</script>
+</body>
+</html>
